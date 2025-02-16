@@ -269,11 +269,6 @@ int main() {
 
     pwm_init_buzzer(BUZZER_PIN);
 
-
-    // Configura o LED como saída
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
-
     // Inicia o servidor HTTP
     start_http_server();
 
