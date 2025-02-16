@@ -12,7 +12,6 @@
 #include "hardware/pwm.h"
 
 
-#define LED_PIN 12          // Define o pino do LED
 #define BUZZER_PIN 21       //define buzzer.
 
 #define WIFI_SSID "Online Rose"  // Substitua pelo nome da sua rede Wi-Fi
