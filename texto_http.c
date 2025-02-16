@@ -150,18 +150,12 @@ static err_t http_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_
     char *request = (char *)p->payload;
 
     char *nota = capturarNota(request);
+    
     showNote(notas[atoi(nota)].nome);
-    printf(notas[atoi(nota)].nome);
+
     play_note(BUZZER_PIN,notas[atoi(nota)].frequencia,500);
 
-    // if (strstr(request, "GET /nota/do")) {
-    //     play_note(BUZZER_PIN, 261.63, 500);
-    //     showNote("Do");
-        
-
-    // } else if (strstr(request, "GET /nota/re")) {
-    //     play_note(BUZZER_PIN, 294, 500);
-    // }
+   
 
     // Envia a resposta HTTP
     tcp_write(tpcb, HTTP_RESPONSE, strlen(HTTP_RESPONSE), TCP_WRITE_FLAG_COPY);
@@ -240,6 +234,8 @@ void showNote(char nota[4]){
 int main() {
     stdio_init_all();  // Inicializa a saída padrão
     sleep_ms(10000);
+
+    //======inicia conexão com wifi=======
     printf("Iniciando servidor HTTP\n");
 
     uint8_t *ip_adress_rasp = malloc(4); 
