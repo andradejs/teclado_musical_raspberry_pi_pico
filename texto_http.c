@@ -1,3 +1,4 @@
+// Inclusão de bibliotecas essenciais para funcionamento do código
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
 #include "lwip/tcp.h"
@@ -11,17 +12,18 @@
 #include "hardware/clocks.h"
 #include "hardware/pwm.h"
 
+// Definição do pino do buzzer
+#define BUZZER_PIN 21 
 
-#define BUZZER_PIN 21       //define buzzer.
+// Definição das credenciais de Wi-F
+#define WIFI_SSID "Online Rose" // Nome da rede Wi-Fi
+#define WIFI_PASS "52074185" // Senha da rede Wi-Fi
 
-#define WIFI_SSID "Online Rose"  // Substitua pelo nome da sua rede Wi-Fi
-#define WIFI_PASS "52074185" // Substitua pela senha da sua rede Wi-Fi
-
-
+// Definição dos pinos para comunicação I2C
 const uint I2C_SDA = 14;
 const uint I2C_SCL = 15;
 
-// Buffer para respostas HTTP
+// Resposta HTTP contendo a interface gráfica do teclado musical
 #define HTTP_RESPONSE "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" \
 "<!DOCTYPE html><html><head>" \
 "<title>Teclado Musical</title>" \
@@ -49,15 +51,16 @@ const uint I2C_SCL = 15;
 "<p><a href=\"/nota/11\" class=\"tecla branca\">Si</a></p>" \
 "</div></body></html>\r\n"
 
+// Estrutura para armazenar notas musicais e suas frequências
 #define TOTAL_NOTAS 13
 
 typedef struct 
 {
-    char nome[10];
-    float frequencia;
+    char nome[10]; // Nome da nota musical
+    float frequencia; // Frequência da nota em Hz
 } Nota;
 
-
+// Lista de notas musicais e suas respectivas frequências
 Nota notas[13]= {
     {"do", 261.63},  // Dó
     {"do#", 277.18}, // Dó sustenido
@@ -74,9 +77,7 @@ Nota notas[13]= {
     {"do", 523.25},  // Dó (oitava superior)
 };
 
-
-
-
+// Define uma estrutura para especificar a área de renderização do display OLED
 struct render_area frame_area = {
         start_column : 0,
         end_column : ssd1306_width - 1,
@@ -84,18 +85,16 @@ struct render_area frame_area = {
         end_page : ssd1306_n_pages - 1
       };
     
-
+// Funções relacionadas ao display OLED
 void display_text(char *lines[], int line_count);
-
 void clear_display(uint8_t *ssd);
-
 void showNote(char note[4]);
 
+// Captura a nota musical a partir da requisição HTTP
 char *capturarNota(const char *request) {
     const char *pos = strstr(request, "/nota/");
     if (pos) {
-        // Avança para a parte depois de "/nota/"
-        pos += 6;  
+        pos += 6;  // Avança para a parte depois de "/nota/"
         
         // Captura a nota (incluindo sustenido)
         static char nota[10];
@@ -105,6 +104,7 @@ char *capturarNota(const char *request) {
     return NULL;
 }
 
+// Obtém a frequência da nota musical a partir do nome
 float getFrequencia(const char *nome) {
     for (int i = 0; i < TOTAL_NOTAS; i++) {
         if (strcmp(notas[i].nome, nome) == 0) {
@@ -114,6 +114,7 @@ float getFrequencia(const char *nome) {
     return -1.0; // Retorna -1 se não encontrar
 }
 
+// Configura a frequência do buzzer usando PWM
 void set_buzzer_frequency(uint pin, float frequency) {
     uint slice_num = pwm_gpio_to_slice_num(pin);
     uint32_t clock = clock_get_hz(clk_sys); // Clock do sistema (normalmente 125 MHz)
@@ -124,6 +125,7 @@ void set_buzzer_frequency(uint pin, float frequency) {
     pwm_set_gpio_level(pin, 2048);       // Define um duty cycle de 50%
 }
 
+// Inicializa o PWM para o buzzer
 void pwm_init_buzzer(uint pin) {
     gpio_set_function(pin, GPIO_FUNC_PWM);
     uint slice_num = pwm_gpio_to_slice_num(pin);
@@ -132,6 +134,7 @@ void pwm_init_buzzer(uint pin) {
     pwm_init(slice_num, &config, true);
 }
 
+// Toca uma nota musical por um tempo determinado
 void play_note(uint pin, float frequency, uint duration_ms) {
     set_buzzer_frequency(pin, frequency);
     sleep_ms(duration_ms);
@@ -148,14 +151,13 @@ static err_t http_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_
 
     // Processa a requisição HTTP
     char *request = (char *)p->payload;
-
     char *nota = capturarNota(request);
-    
+
+    // Exibe a nota no display OLED
     showNote(notas[atoi(nota)].nome);
 
+     // Toca a nota correspondente no buzzer
     play_note(BUZZER_PIN,notas[atoi(nota)].frequencia,500);
-
-   
 
     // Envia a resposta HTTP
     tcp_write(tpcb, HTTP_RESPONSE, strlen(HTTP_RESPONSE), TCP_WRITE_FLAG_COPY);
@@ -172,7 +174,7 @@ static err_t connection_callback(void *arg, struct tcp_pcb *newpcb, err_t err) {
     return ERR_OK;
 }
 
-// Função de setup do servidor TCP
+// Configura e inicia o servidor HTTP
 static void start_http_server(void) {
     struct tcp_pcb *pcb = tcp_new();
     if (!pcb) {
@@ -192,6 +194,7 @@ static void start_http_server(void) {
     printf("Servidor HTTP rodando na porta 80...\n");
 }
 
+// Inicializa o display OLED via I2C
 void init_display() {
     i2c_init(i2c1, ssd1306_i2c_clock * 1000);
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
@@ -202,11 +205,13 @@ void init_display() {
     calculate_render_area_buffer_length(&frame_area);
 }
 
+// Limpa o display OLED
 void clear_display(uint8_t *ssd) {
     memset(ssd, 0, ssd1306_buffer_length);
     render_on_display(ssd, &frame_area);
 }
 
+// Exibe texto no display OLED
 void display_text(char *lines[], int line_count) {
     uint8_t ssd[ssd1306_buffer_length];
     clear_display(ssd);
@@ -219,6 +224,7 @@ void display_text(char *lines[], int line_count) {
     render_on_display(ssd, &frame_area);
 }
 
+// Exibe a nota musical no display OLED
 void showNote(char nota[4]){
     char *text[] = {
         "            ",
@@ -231,6 +237,7 @@ void showNote(char nota[4]){
     display_text(text, 5);
 }
 
+// Função principal do programa
 int main() {
     stdio_init_all();  // Inicializa a saída padrão
     sleep_ms(10000);
@@ -253,7 +260,8 @@ int main() {
         return 1;
     }else {
         printf("Connected.\n");
-        // Read the ip address in a human readable way
+        
+        // Lê o endereço IP do Raspberry Pi
         uint8_t *ip_address = (uint8_t*)&(cyw43_state.netif[0].ip_addr.addr);
         memcpy(ip_adress_rasp, ip_address, 4);
         printf("Endereço IP %d.%d.%d.%d\n", ip_address[0], ip_address[1], ip_address[2], ip_address[3]);
@@ -267,7 +275,10 @@ int main() {
     // Inicia o servidor HTTP
     start_http_server();
 
+    // Inicializa o display OLED
     init_display();
+    
+    // Exibe o IP no display OLED
     char ip_str[16];
     sprintf(ip_str, "%d.%d.%d.%d", ip_adress_rasp[0], ip_adress_rasp[1], ip_adress_rasp[2], ip_adress_rasp[3]);
 
@@ -282,7 +293,7 @@ int main() {
     
     display_text(text, 6);
     
-    // Loop principal
+   // Loop principal para manter o sistema rodando
     while (true) {
         cyw43_arch_poll();  // Necessário para manter o Wi-Fi ativo
         sleep_ms(100);
