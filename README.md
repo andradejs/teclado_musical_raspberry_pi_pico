@@ -29,7 +29,6 @@ Este projeto implementa um **servidor web** no **Raspberry Pi Pico W**, permitin
 | Componente  | Pino Pico W |
 |-------------|------------|
 | Buzzer      | GP21       |
-| LED         | GP12       |
 | OLED SDA    | GP14       |
 | OLED SCL    | GP15       |
 
